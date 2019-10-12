@@ -1,0 +1,111 @@
+- name: Vagrant JVM apps development standard
+  hosts: all
+  user: vagrant
+  become: yes
+  gather_facts: yes
+
+  tasks:
+
+    - name: Install essential apps and tools
+      apt:
+        name: '{{ item }}'
+        state: present
+        update-cache: yes
+      with_items:
+        - git
+        - htop
+        - linux-tools-common
+        - vim
+        - lsof
+        - unzip
+        - p7zip-full
+        - postgresql-client
+        - w3m
+        - curl
+      become: yes
+
+
+      # Python3
+      # =======
+    - name: Python3 - Install pip3 & Virtual env
+      apt:
+        name: '{{ item }}'
+        force: yes
+        state: present
+      with_items:
+        - python3-pip
+      become: yes
+      tags: python3
+
+    - name: Python3 - Make python3 alias
+      blockinfile:
+        state: present
+        path: "/home/vagrant/.bashrc"
+        insertafter: EOF
+        block: |
+          alias python=python3
+          alias py=python3
+          alias pip=pip3
+      become: no
+      tags: python3
+      # END - Python Utils ===============
+
+
+      # Install OpenJDK 8
+      # =================
+    - name: OpenJDK-8 - Add Java repository to sources
+      apt_repository:
+        repo: 'ppa:openjdk-r/ppa'
+      tags: openjdk-8
+
+    - name: OpenJDK-8 - Update APT package cache
+      apt:
+        update_cache: yes
+      tags: openjdk-8
+
+    - name: OpenJDK-8 - Install OpenJDK 8
+      apt:
+        name: openjdk-8-jdk
+        force: yes
+      become: yes
+      tags: openjdk-8
+
+    - name: OpenJDK-8 - Add JAVA_HOME to env vars
+      lineinfile:
+        dest: "/etc/environment"
+        state: present
+        regexp: "^JAVA_HOME"
+        line: "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64"
+      # END - Install OpenJDK 8 ===============
+
+
+      # Update & Upgrade distribution
+    - name: Upgrade Dist - Update cache
+      apt:
+        update_cache: yes
+        state: latest
+      tags: upgrade-dist
+
+    - name: Upgrade Dist - Upgrade Distribution
+      apt:
+        upgrade: dist
+      tags: upgrade-dist
+      # END - Upgrade Distribution ==========
+
+
+    - name: Auto change dir to project root
+      lineinfile:
+        dest: "/home/vagrant/.bashrc"
+        line: "cd /vagrant/"
+        insertafter: EOF
+      become: no
+
+    - name: Let them know
+      debug:
+        msg:
+          - '===================================================='
+          - '|                                                  |'
+          - '|            VAGRANT PROVISION FINISHED            |'
+          - '|                                                  |'
+          - '===================================================='
+      become: no
